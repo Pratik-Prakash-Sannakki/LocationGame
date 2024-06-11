@@ -1,0 +1,6 @@
+private
+node_modules
+build
+.coverage
+env
+

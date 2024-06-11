@@ -1,0 +1,12 @@
+flask
+flask-bcrypt
+flask-cors
+flask-api
+python-dotenv
+pymongo
+requests
+gunicorn
+PyJWT
+python-dateutil
+pytz
+dnspython

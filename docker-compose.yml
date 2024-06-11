@@ -1,0 +1,53 @@
+#version: '3.8'
+# see here https://docs.docker.com/compose/compose-file/compose-versioning/
+version: '3.1'
+
+services:
+
+  be:
+    build:
+      context: ./be
+      dockerfile: Dockerfile
+    #~dk getting rid of this because this hides all the files in /usr/src/app since I didn't specify
+    # the local folder on the host as a shared folder with virtualbox! Also, I have no idea why we
+    # need a shared volume here..
+    #volumes:
+    #  - './services/users:/usr/src/app'
+    ports:
+      - 5004:5000
+    environment:
+      - FLASK_ENV=development
+      - DATABASE_URL=mongodb+srv://admin:admin@tweets.8ugzv.mongodb.net/tweets?retryWrites=true&w=majority
+      - DATABASE_TEST_URL=mongodb://localhost:27017/
+    networks:
+      - backend
+
+  fe:
+    stdin_open: true
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+    # ~dk same problem here..
+    #volumes:
+      #- './fe:/usr/src/app'
+      #- '/usr/src/app/node_modules'
+    ports:
+      - 3007:80
+    environment:
+      - NODE_ENV=development
+      - REACT_APP_BE_NETWORK=backend
+      - REACT_APP_BE_PORT=5000
+      - REACT_APP_API_SERVICE_URL=${REACT_APP_API_SERVICE_URL}
+    depends_on:
+      - be
+    # specifies frontend and backend as the networks the fe service will have access to
+    networks:
+      - frontend
+      - backend
+      
+# bridge networks to allow the containers to communicate with each other
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
