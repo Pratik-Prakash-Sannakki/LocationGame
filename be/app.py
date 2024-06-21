@@ -8,7 +8,9 @@ import random
 import http
 
 # Redis client setup
-rj = Client(host='127.0.0.1', port=6379, decode_responses=True)
+#rj = Client(host='127.0.0.1', port=6379, decode_responses=True)
+redis_host = os.getenv('REDIS_HOST', 'localhost')  # Default to 'localhost' if 'REDIS_HOST' is not set
+rj = Client(host=redis_host, port=6379, decode_responses=True)
 push_to_redis = True
 rj_host = 'localhost'
 

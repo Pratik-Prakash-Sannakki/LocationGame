@@ -77,7 +77,7 @@ function GeoLocation(props) {
       {spd !== null && <p>Speed: {spd}</p>}
       <h1>Map</h1>
       {lat && lng && (
-        <Map height={300} defaultCenter={[lat, lng]} defaultZoom={15} center={[lat, lng]}>
+        <Map height={300} defaultCenter={[lat, lng]} defaultZoom={19} center={[lat, lng]}>
           <Marker width={50} anchor={[lat, lng]} />
         </Map>
       )}
