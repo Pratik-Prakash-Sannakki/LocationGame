@@ -34,6 +34,7 @@ import PasswordReset from "../pages/PasswordReset/PasswordReset";
 import PasswordChange from "../pages/PasswordChange/PasswordChange";
 import THome from "../pages/Tweets/Home";
 import Compose from "../pages/Compose/Compose";
+import Geo from "../pages/Geo/geo";
 
 const drawerWidth = 240;
 const history = createBrowserHistory();
@@ -238,6 +239,22 @@ export default function Dashboard() {
               }
             </ListItem>
 
+            {/* Orders menu item */}
+<ListItem button component={Link} to="/geo" onClick={onItemClick('Geo')}>
+  <ListItemIcon>
+    <DashboardIcon />
+  </ListItemIcon>
+  <ListItemText primary="Geo" />
+  { title === 'Orders' && 
+    <ListItemIcon>
+      <IconButton onClick={handleDrawerCollapsed} visible={title}>
+        <ChevronLeftIcon />
+      </IconButton>
+    </ListItemIcon>
+  }
+            </ListItem>
+
+
             {/* Compose menu item*/}
             <ListItem button component={Link} to="/compose" onClick={onItemClick('Compose')}>
               <ListItemIcon>
@@ -279,6 +296,7 @@ export default function Dashboard() {
           <Route path="/compose" component={Compose} />
           <Route path="/signin" component={SignIn} />
           <Route path="/signup" component={SignUp} />
+          <Route path="/geo" component={Geo} />
           <Route path="/password_reset" component={PasswordReset} />
           <Route path="/password_change" component={PasswordChange} />
           {/* <Route path="/activity"><ActivityHome /></Route> */}

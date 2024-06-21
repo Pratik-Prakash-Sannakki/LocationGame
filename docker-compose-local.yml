@@ -1,0 +1,38 @@
+version: '3.1'
+
+services:
+
+  redis:
+    image: redislabs/rejson:latest
+    ports: 
+      - 6379:6379
+    networks:
+      - dummynetwork
+  
+  bes:
+    build:
+      context: ./be
+      dockerfile: Dockerfile
+    ports:
+      - 5000:5000
+    depends_on:
+      - redis
+    networks:
+      - dummynetwork
+    environment:
+      - REDIS_HOST=redis
+
+  fes:
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+    ports:
+      - 80:80
+    depends_on:
+      - bes
+    networks:
+      - dummynetwork
+
+networks:
+  dummynetwork:
+    driver: bridge
