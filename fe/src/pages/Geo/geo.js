@@ -27,38 +27,48 @@ function GeoLocation(props) {
   const [lng, setLng] = useState(null);
   const [hea, setHea] = useState(null);
   const [spd, setSpd] = useState(null);
+  const [defaultUsers, setDefaultUsers] = useState([]);
 
   useEffect(() => {
     let watchId;
     if (navigator.geolocation) {
-      watchId = navigator.geolocation.watchPosition((position) => {
-        const { latitude, longitude, heading, speed } = position.coords;
-        setLat(latitude);
-        setLng(longitude);
-        setHea(heading);
-        setSpd(speed);
+      watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude, heading, speed } = position.coords;
+          setLat(latitude);
+          setLng(longitude);
+          setHea(heading);
+          setSpd(speed);
 
-        // Send location data to the backend
-        fetch("http://localhost:5000/set-location", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            user_id: "user123", // Replace with actual user ID
-            latitude: latitude,
-            longitude: longitude,
-            heading: heading,
-            speed: speed
+          // Send location data to the backend
+          fetch("http://localhost:5000/set-location", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              user_id: "user123", // Replace with actual user ID
+              latitude: latitude,
+              longitude: longitude,
+              heading: heading,
+              speed: speed,
+            }),
           })
-        }).then(response => response.json())
-          .then(data => console.log(data))
-          .catch(error => console.error('Error:', error));
-      }, (e) => {
-        console.log(e);
-      });
+            .then((response) => response.json())
+            .then((data) => {
+              console.log(data);
+              if (data.default_users) {
+                setDefaultUsers(data.default_users);
+              }
+            })
+            .catch((error) => console.error("Error:", error));
+        },
+        (e) => {
+          console.log(e);
+        }
+      );
     } else {
-      console.log('GeoLocation not supported by your browser!');
+      console.log("GeoLocation not supported by your browser!");
     }
 
     return () => {
@@ -69,7 +79,7 @@ function GeoLocation(props) {
   }, []);
 
   return (
-    <div style={{ backgroundColor: 'white', padding: 72 }}>
+    <div style={{ backgroundColor: "white", padding: 72 }}>
       <h1>Coordinates</h1>
       {lat !== null && <p>Latitude: {lat}</p>}
       {lng !== null && <p>Longitude: {lng}</p>}
@@ -77,8 +87,20 @@ function GeoLocation(props) {
       {spd !== null && <p>Speed: {spd}</p>}
       <h1>Map</h1>
       {lat && lng && (
-        <Map height={300} defaultCenter={[lat, lng]} defaultZoom={19} center={[lat, lng]}>
+        <Map
+          height={500}
+          defaultCenter={[lat, lng]}
+          defaultZoom={12}
+          center={[lat, lng]}
+        >
           <Marker width={50} anchor={[lat, lng]} />
+          {defaultUsers.map((user) => (
+            <Marker
+              key={user.user_id}
+              width={50}
+              anchor={[user.latitude, user.longitude]}
+            />
+          ))}
         </Map>
       )}
     </div>

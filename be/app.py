@@ -11,7 +11,7 @@ import http
 #rj = Client(host='127.0.0.1', port=6379, decode_responses=True)
 redis_host = os.getenv('REDIS_HOST', 'localhost')  # Default to 'localhost' if 'REDIS_HOST' is not set
 rj = Client(host=redis_host, port=6379, decode_responses=True)
-push_to_redis = True
+push_to_redis = False
 rj_host = 'localhost'
 
 # Hard-coded time zone. Required for correct ObjectId comparisons!
@@ -135,7 +135,46 @@ def set_location():
             return jsonify(f"Location for user {user_id} not enqueued.", http.HTTPStatus.INTERNAL_SERVER_ERROR)
     else:
         print("Dropped.")
-        return jsonify("Dropped.", http.HTTPStatus.OK)
+        # return jsonify("Dropped.", http.HTTPStatus.OK)
+        default_users = [
+            {
+                "user_id": "default_user_1",
+                "latitude": 37.7749,
+                "longitude": -122.4194,
+                "heading": 90,
+                "speed": 30
+            },
+            {
+                "user_id": "default_user_2",
+                "latitude": 34.0522,
+                "longitude": -118.2437,
+                "heading": 180,
+                "speed": 45
+            },
+            {
+                "user_id": "default_user_3",
+                "latitude": 40.7128,
+                "longitude": -74.0060,
+                "heading": 270,
+                "speed": 60
+            }
+        ]
+
+        # Update Redis with default user data
+        for user in default_users:
+            key = f"user:{user['user_id']}:location"
+            record = {
+                "latitude": user["latitude"],
+                "longitude": user["longitude"],
+                "heading": user["heading"],
+                "speed": user["speed"]
+            }
+            if rjjsonsetwrapper(key, Path.rootPath(), record):
+                print(f"Location for default user {user['user_id']} enqueued.")
+            else:
+                print(f"Location for default user {user['user_id']} not enqueued!")
+
+        return jsonify({"message": "Dropped.", "default_users": default_users}, http.HTTPStatus.OK)
 
 @app.route("/get-location/<user_id>", methods=["GET"])
 def get_location(user_id):
