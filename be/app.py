@@ -41,10 +41,10 @@ def set_env_var():
     if 'refresh_token_expiration' not in g:
         g.refresh_token_expiration = int(os.environ.get("REFRESH_TOKEN_EXPIRATION", 2592000))
     if 'users' not in g:
-        users = os.environ.get("USERS", 'user1,user2,Jeff Bezos')
+        users = os.environ.get("USERS", 'user1,user2,user3')
         g.users = users.split(',')
     if 'passwords' not in g:
-        passwords = os.environ.get("PASSWORDS", 'Tesla,Clippy,Blue Horizon')
+        passwords = os.environ.get("PASSWORDS", 'Tesla,Clippy,Blue')
         g.passwords = passwords.split(',')
         g.password_hashes = [bcrypt.generate_password_hash(p).decode('utf-8') for p in g.passwords]
         g.userids = list(range(len(g.users)))
@@ -279,12 +279,10 @@ def login():
         password = request.json['password']
         if not user or not password:
             return jsonify(("Authentication is required and has failed!", status.HTTP_401_UNAUTHORIZED))
-        elif user != 'user2':
-            return jsonify(("Unknown user!", status.HTTP_401_UNAUTHORIZED))
         else:
             # Update user1's name and password in Redis
             user_id = g.userids[g.users.index(user)]
-            user_key = f"users:{user_id}"
+            user_key = "currentUser"
             user_record = {
                 "name": user,
                 "password": password
@@ -338,9 +336,10 @@ def fastlogin():
     except Exception as e:
         return jsonify(("Authentication is required and has failed!", status.HTTP_401_UNAUTHORIZED))
 
+
 @app.route("/get-user1-data", methods=["GET"])
 def get_user1_data():
-    user_key = "users:1"  # Updated to fetch user1's data
+    user_key = "currentUser"  # Updated to fetch user1's data
     try:
         data = rj.jsonget(user_key, Path.rootPath())
         if data:
@@ -350,6 +349,9 @@ def get_user1_data():
     except:
         print("*** Error retrieving data for user1.")
         return jsonify("Error retrieving data for user1.", http.HTTPStatus.INTERNAL_SERVER_ERROR)
+
+
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=True)

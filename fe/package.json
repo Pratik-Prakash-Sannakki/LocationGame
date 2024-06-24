@@ -16,7 +16,7 @@
     "react-markdown": "4.x",
     "react-native-web": "0.11.7",
     "react-router-dom": "^5.1.2",
-    "react-scripts": "^3.4.3",
+    "react-scripts": "^3.4.4",
     "react-swipeable-views": "^0.13.9",
     "recharts": "^1.8.5",
     "tubular-react": "^4.2.5"

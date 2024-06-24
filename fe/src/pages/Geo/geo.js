@@ -128,25 +128,43 @@ function GeoLocation(props) {
       {heading !== null && <p>Heading: {heading}</p>}
       {speed !== null && <p>Speed: {speed}</p>}
 
-      <h4>User1</h4>
-      {users.user1.latitude !== undefined && (
-        <p>Latitude: {users.user1.latitude}</p>
-      )}
-      {users.user1.longitude !== undefined && (
-        <p>Longitude: {users.user1.longitude}</p>
+      <div>
+      {userPrime !== "user1" && (
+        <>
+          <h4>User1</h4>
+          {users.user1.latitude !== undefined && (
+            <p>Latitude: {users.user1.latitude}</p>
+          )}
+          {users.user1.longitude !== undefined && (
+            <p>Longitude: {users.user1.longitude}</p>
+          )}
+        </>
       )}
 
-      <h4>User2</h4>
-      {<p>Latitude: {lat}</p>}
-      {<p>Longitude: {lng}</p>}
+      {userPrime !== "user2" && (
+        <>
+          <h4>User2</h4>
+          {users.user2.latitude !== undefined && (
+            <p>Latitude: {users.user2.latitude}</p>
+          )}
+          {users.user2.longitude !== undefined && (
+            <p>Longitude: {users.user2.longitude}</p>
+          )}
+        </>
+      )}
 
-      <h4>User3</h4>
-      {users.user3.latitude !== undefined && (
-        <p>Latitude: {users.user3.latitude}</p>
+      {userPrime !== "user3" && (
+        <>
+          <h4>User3</h4>
+          {users.user3.latitude !== undefined && (
+            <p>Latitude: {users.user3.latitude}</p>
+          )}
+          {users.user3.longitude !== undefined && (
+            <p>Longitude: {users.user3.longitude}</p>
+          )}
+        </>
       )}
-      {users.user3.longitude !== undefined && (
-        <p>Longitude: {users.user3.longitude}</p>
-      )}
+    </div>
 
       <h1>Map</h1>
       {lat && lng && (
