@@ -47,8 +47,9 @@ function GeoLocation(props) {
               "http://localhost:5000/get-user1-data"
             );
             const userData = await userDataResponse.json();
-            const { name } = userData;
-            setUserPrime(name);
+            console.log(userData)
+            const { name } = userData.username;
+            setUserPrime(userData.username);
 
             // Send location data to the backend
             await fetch("http://localhost:5000/set-location", {

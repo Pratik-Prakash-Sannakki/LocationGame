@@ -35,6 +35,7 @@ import PasswordChange from "../pages/PasswordChange/PasswordChange";
 import THome from "../pages/Tweets/Home";
 import Compose from "../pages/Compose/Compose";
 import Geo from "../pages/Geo/geo";
+import Auth from "../pages/Auth/Auth";
 
 const drawerWidth = 240;
 const history = createBrowserHistory();
@@ -240,17 +241,13 @@ export default function Dashboard() {
     </ListItemIcon>
   }
             </ListItem>
-
-
-           
-
-            {/* SignUp menu item */}
-            <ListItem button component={Link} to="/signin" onClick={onItemClick('Sign In')}>
+             {/* Tweets menu item*/}
+             <ListItem button component={Link} to="/Auth" onClick={onItemClick('Auth')}>
               <ListItemIcon>
-                <LayersIcon />
+                <DashboardIcon />
               </ListItemIcon>
-              <ListItemText primary="Sign In" />
-              { title === 'Sign In' && 
+              <ListItemText primary="Auth" />
+              { title === 'Auth' && 
                 <ListItemIcon>
                   <IconButton onClick={handleDrawerCollapsed}>
                     <ChevronLeftIcon />
@@ -258,6 +255,11 @@ export default function Dashboard() {
                 </ListItemIcon>
               }
             </ListItem>
+
+
+           
+
+           
           </List>
         </Drawer>
 
@@ -271,6 +273,7 @@ export default function Dashboard() {
           <Route path="/signin" component={SignIn} />
           <Route path="/signup" component={SignUp} />
           <Route path="/geo" component={Geo} />
+          <Route path="/Auth" component={Auth} />
           <Route path="/password_reset" component={PasswordReset} />
           <Route path="/password_change" component={PasswordChange} />
           {/* <Route path="/activity"><ActivityHome /></Route> */}

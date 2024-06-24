@@ -6,6 +6,7 @@ import pytz
 import os
 import random
 import http
+import hashlib
 import jwt
 from flask_bcrypt import Bcrypt
 from flask_api import status
@@ -271,36 +272,101 @@ def decode_token(token):
 #             return jsonify((response_object, status.HTTP_200_OK))
 #     except Exception as e:
 #         return jsonify(("Authentication is required and has failed!", status.HTTP_401_UNAUTHORIZED))
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'message': 'Username and password are required'}), 400
+    
+    hashed_password = hash_password(password)
+    
+   
+    
+    # Store username and hashed_password in Redis under a unique key
+    user_data = {'username': username, 'hashed_password': hashed_password}
+    key = f'user:{username}'  # Example key format: 'user:abc-123-def-456...'
+    
+    # Assuming rjjsonsetwrapper handles storing data in Redis
+    if rjjsonsetwrapper(key, Path.rootPath(), user_data):
+        return jsonify({'message': 'User registered successfully'}), 201
+    else:
+        return jsonify({'message': 'Internal server error'}), 500
 
-@app.route("/login", methods=["POST"])
-def login():
+def rjjsongetwrapper(key, path):
+    """Wrapper to get JSON data from Redis."""
     try:
-        user = request.json['name']
-        password = request.json['password']
-        if not user or not password:
-            return jsonify(("Authentication is required and has failed!", status.HTTP_401_UNAUTHORIZED))
-        else:
-            # Update user1's name and password in Redis
-            user_id = g.userids[g.users.index(user)]
-            user_key = "currentUser"
-            user_record = {
-                "name": user,
-                "password": password
-            }
-            rjjsonsetwrapper(user_key, Path.rootPath(), user_record)
-
-            # Generate tokens
-            access_token = encode_token(user_id, "access")
-            refresh_token = encode_token(user_id, "refresh")
-
-            response_object = {
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-                "name": user 
-            }
-            return jsonify((response_object, status.HTTP_200_OK))
+        return rj.jsonget(key, path)
     except Exception as e:
-        return jsonify(("Authentication is required and has failed!", status.HTTP_401_UNAUTHORIZED))
+        print('rjjsongetwrapper() error:', str(e))
+        return None
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'message': 'Username and password are required'}), 400
+    
+    # Retrieve user data from Redis
+    user_data = rjjsongetwrapper('user:'+username, Path.rootPath())
+    
+    if user_data:
+        stored_password = user_data.get('hashed_password')
+        if stored_password and hash_password(password) == stored_password:
+           
+            is_prime_user = username in ['user1', 'user2', 'user3']
+            
+            # Determine the behavior based on the username
+            if is_prime_user:
+                # Set both 'currentUser' and 'primeUser' JSON with the username
+                if rjjsonsetwrapper('currentUser', Path.rootPath(), {'username': username}) and \
+                   rjjsonsetwrapper('primeUser', Path.rootPath(), {'username': username}):
+                    return jsonify({'userID': username, 'message': 'You are a Application user'}), 200
+                else:
+                    return jsonify({'message': 'Internal server error'}), 500
+            else:
+                # Set only 'currentUser' JSON with the username
+                if rjjsonsetwrapper('currentUser', Path.rootPath(), {'username': username}):
+                    return jsonify({'userID': username, 'message': 'You are a view only user'}), 200
+                else:
+                    return jsonify({'message': 'Internal server error'}), 500
+        else:
+            return jsonify({'message': 'Invalid credentials'}), 401
+    else:
+        return jsonify({'message': 'User not found'}), 404
+
+
+
+
+
+
+@app.route('/users', methods=['GET'])
+def get_users():
+    users = rj.hkeys('users')  # Get all usernames from the 'users' hash
+    users_list = [user for user in users]  # Decode usernames from bytes to strings
+    return jsonify({'users': users_list}), 200
+
+@app.route("/get-user1-data", methods=["GET"])
+def get_user1_data():
+    user_key = "primeUser"  # Updated to fetch user1's data
+    try:
+        data = rj.jsonget(user_key, Path.rootPath())
+        if data:
+            return jsonify(data)
+        else:
+            return jsonify("No data found for user1.", http.HTTPStatus.NOT_FOUND)
+    except:
+        print("*** Error retrieving data for user1.")
+        return jsonify("Error retrieving data for user1.", http.HTTPStatus.INTERNAL_SERVER_ERROR)
+
 
 
 
@@ -337,18 +403,7 @@ def fastlogin():
         return jsonify(("Authentication is required and has failed!", status.HTTP_401_UNAUTHORIZED))
 
 
-@app.route("/get-user1-data", methods=["GET"])
-def get_user1_data():
-    user_key = "currentUser"  # Updated to fetch user1's data
-    try:
-        data = rj.jsonget(user_key, Path.rootPath())
-        if data:
-            return jsonify(data)
-        else:
-            return jsonify("No data found for user1.", http.HTTPStatus.NOT_FOUND)
-    except:
-        print("*** Error retrieving data for user1.")
-        return jsonify("Error retrieving data for user1.", http.HTTPStatus.INTERNAL_SERVER_ERROR)
+
 
 
 
