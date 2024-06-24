@@ -224,20 +224,7 @@ export default function Dashboard() {
           {/* Left pane menu items */}
           <List>
 
-            {/* Tweets menu item*/}
-            <ListItem button component={Link} to="/tweets" onClick={onItemClick('Tweets')}>
-              <ListItemIcon>
-                <DashboardIcon />
-              </ListItemIcon>
-              <ListItemText primary="Tweets" />
-              { title === 'Tweets' && 
-                <ListItemIcon>
-                  <IconButton onClick={handleDrawerCollapsed}>
-                    <ChevronLeftIcon />
-                  </IconButton>
-                </ListItemIcon>
-              }
-            </ListItem>
+           
 
             {/* Orders menu item */}
 <ListItem button component={Link} to="/geo" onClick={onItemClick('Geo')}>
@@ -255,20 +242,7 @@ export default function Dashboard() {
             </ListItem>
 
 
-            {/* Compose menu item*/}
-            <ListItem button component={Link} to="/compose" onClick={onItemClick('Compose')}>
-              <ListItemIcon>
-                <DashboardIcon />
-              </ListItemIcon>
-              <ListItemText primary="Compose" />
-              { title === 'Compose' && 
-                <ListItemIcon>
-                  <IconButton onClick={handleDrawerCollapsed}>
-                    <ChevronLeftIcon />
-                  </IconButton>
-                </ListItemIcon>
-              }
-            </ListItem>
+           
 
             {/* SignUp menu item */}
             <ListItem button component={Link} to="/signin" onClick={onItemClick('Sign In')}>
