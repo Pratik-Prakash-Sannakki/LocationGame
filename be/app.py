@@ -15,9 +15,7 @@ from flask_api import status
 # Redis connection using rejson Client
 try:
     rj = Client(
-        host='redis-19369.c11.us-east-1-3.ec2.redns.redis-cloud.com',
-        port=19369,
-        password='iwIGMW4rywGlc4sNNA95UQcUBuC6auwW',
+
         decode_responses=True
     )
 except Exception as e:
