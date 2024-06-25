@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, g
+from flask import Flask, request, jsonify, g, session
 from flask_cors import CORS
 from rejson import Client, Path
 from datetime import datetime, timedelta
@@ -8,12 +8,22 @@ import random
 import http
 import hashlib
 import jwt
+from flask_socketio import SocketIO, emit
 from flask_bcrypt import Bcrypt
 from flask_api import status
 
-# Redis client setup
-redis_host = os.getenv('REDIS_HOST', 'localhost')  # Default to 'localhost' if 'REDIS_HOST' is not set
-rj = Client(host=redis_host, port=6379, decode_responses=True)
+# Redis connection using rejson Client
+try:
+    rj = Client(
+        host='redis-19369.c11.us-east-1-3.ec2.redns.redis-cloud.com',
+        port=19369,
+        password='iwIGMW4rywGlc4sNNA95UQcUBuC6auwW',
+        decode_responses=True
+    )
+except Exception as e:
+    print(f"Error connecting to Redis: {e}")
+    rj = None
+
 push_to_redis = True
 rj_host = 'localhost'
 
@@ -21,6 +31,8 @@ rj_host = 'localhost'
 local_zone = pytz.timezone('US/Eastern')
 
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'my_precious_1869')
 CORS(app)
 bcrypt = Bcrypt(app)
 
@@ -28,8 +40,12 @@ def tryexcept(requesto, key, default):
     """Helper function to handle missing keys in request JSON."""
     try:
         return requesto.json[key]
-    except:
+    except KeyError:
         return default
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    return "Hello from backend", 200
 
 @app.before_request
 def set_env_var():
@@ -61,6 +77,7 @@ def home():
             /collections-from-redis-cache<br />
             /purge-redis-cache<br />
             /set-location<br />
+            /get-user1-data<br />
             /get-location/<user_id>"""
     else:
         return """Remote mock:<br />
@@ -75,25 +92,32 @@ def home():
 @app.route('/collections-from-redis-cache')
 def collections_from_redis_cache():
     """Returns all items from Redis."""
+    if not rj:
+        return jsonify({"error": "Redis connection failed."}), http.HTTPStatus.INTERNAL_SERVER_ERROR
+    
     data = dict()
     try:
         for key in rj.keys('*'):
             data[key] = rj.jsonget(key, Path.rootPath())
-    except:
-        print("*** redisjson is dead!")
-        return jsonify({"Queue inaccessible.": http.HTTPStatus.INTERNAL_SERVER_ERROR})
+    except Exception as e:
+        print(f"Error retrieving collections from Redis: {e}")
+        return jsonify({"error": "Queue inaccessible."}), http.HTTPStatus.INTERNAL_SERVER_ERROR
     return jsonify(data)
 
 @app.route('/purge-redis-cache')
 def purge_redis_cache():
     """Purges all items from Redis."""
+    if not rj:
+        return jsonify({"error": "Redis connection failed."}), http.HTTPStatus.INTERNAL_SERVER_ERROR
+
     data = dict()
     try:
         for key in rj.keys('*'):
             data[key] = rj.jsonget(key, Path.rootPath())
             rj.delete(key)
-    except:
-        print("*** purge_redis_cache(): redisjson is dead!")
+    except Exception as e:
+        print(f"Error purging Redis cache: {e}")
+        return jsonify({"error": "Queue inaccessible."}), http.HTTPStatus.INTERNAL_SERVER_ERROR
     return jsonify(data)
 
 @app.route("/enqueue", methods=["POST"])
@@ -106,13 +130,13 @@ def enqueue():
     if push_to_redis:
         if rjjsonsetwrapper(key, path, record):
             print("Enqueued.")
-            return jsonify("Enqueued.", http.HTTPStatus.OK)
+            return jsonify("Enqueued."), http.HTTPStatus.OK
         else:
             print("Not enqueued!")
-            return jsonify("Not enqueued.", http.HTTPStatus.INTERNAL_SERVER_ERROR)
+            return jsonify("Not enqueued!"), http.HTTPStatus.INTERNAL_SERVER_ERROR
     else:
         print("Dropped.")
-        return jsonify("Dropped.", http.HTTPStatus.OK)
+        return jsonify("Dropped."), http.HTTPStatus.OK
 
 @app.route("/enqueue-get", methods=["GET"])
 def enqueue_get():
@@ -124,10 +148,10 @@ def enqueue_get():
     if push_to_redis:
         rjjsonsetwrapper(key, path, record)
         print("Enqueued.")
-        return jsonify("Enqueued.", http.HTTPStatus.OK)
+        return jsonify("Enqueued."), http.HTTPStatus.OK
     else:
         print("Dropped.")
-        return jsonify("Dropped.", http.HTTPStatus.OK)
+        return jsonify("Dropped."), http.HTTPStatus.OK
 
 @app.route("/set-location", methods=["POST"])
 def set_location():
@@ -139,7 +163,7 @@ def set_location():
     speed = tryexcept(request, 'speed', None)
 
     if user_id is None or latitude is None or longitude is None:
-        return jsonify("Missing data.", http.HTTPStatus.BAD_REQUEST)
+        return jsonify("Missing data."), http.HTTPStatus.BAD_REQUEST
 
     key = f"user:{user_id}:location"
     record = {
@@ -152,13 +176,13 @@ def set_location():
     if push_to_redis:
         if rjjsonsetwrapper(key, Path.rootPath(), record):
             print(f"Location for user {user_id} enqueued.")
-            return jsonify(f"Location for user {user_id} enqueued.", http.HTTPStatus.OK)
+            return jsonify(f"Location for user {user_id} enqueued."), http.HTTPStatus.OK
         else:
             print(f"Location for user {user_id} not enqueued!")
-            return jsonify(f"Location for user {user_id} not enqueued.", http.HTTPStatus.INTERNAL_SERVER_ERROR)
+            return jsonify(f"Location for user {user_id} not enqueued."), http.HTTPStatus.INTERNAL_SERVER_ERROR
     else:
         print("Dropped.")
-        return jsonify("Dropped.", http.HTTPStatus.OK)
+        return jsonify("Dropped."), http.HTTPStatus.OK
 
 @app.route("/get-location/<user_id>", methods=["GET"])
 def get_location(user_id):
@@ -170,10 +194,10 @@ def get_location(user_id):
         if data:
             return jsonify(data)
         else:
-            return jsonify(f"No location data for user {user_id}.", http.HTTPStatus.NOT_FOUND)
-    except:
-        print("*** get_location(): redisjson is dead!")
-        return jsonify(f"Error retrieving data for user {user_id}.", http.HTTPStatus.INTERNAL_SERVER_ERROR)
+            return jsonify(f"No location data for user {user_id}."), http.HTTPStatus.NOT_FOUND
+    except Exception as e:
+        print(f"Error retrieving location data: {e}")
+        return jsonify(f"Error retrieving data for user {user_id}."), http.HTTPStatus.INTERNAL_SERVER_ERROR
 
 def rjjsonsetwrapper(key, path, record):
     """Wrapper to add data to Redis."""
@@ -182,7 +206,6 @@ def rjjsonsetwrapper(key, path, record):
         return True
     except Exception as e:
         print('rjjsonsetwrapper() error:', str(e))
-        print("*** redis is dead!")
         return False
 
 ################
@@ -207,71 +230,6 @@ def decode_token(token):
     payload = jwt.decode(token, g.secret_key, algorithms=["HS256"])
     return payload["sub"]
 
-####################
-# Security Endpoints
-####################
-# @app.route("/login", methods=["POST"])
-# def login():
-#     try:
-#         user = request.json['name']
-#         password = request.json['password']
-#         if not user or not password:
-#             return jsonify(("Authentication is required and has failed!", status.HTTP_401_UNAUTHORIZED))
-#         elif user not in g.users:
-#             return jsonify(("Unknown user!", status.HTTP_401_UNAUTHORIZED))
-#         else:
-#             password_hash = g.password_hashes[g.users.index(user)]
-#             if not bcrypt.check_password_hash(password_hash, password):
-#                 return jsonify(("Authentication is required and has failed!", status.HTTP_401_UNAUTHORIZED))
-
-#             userid = g.userids[g.users.index(user)]
-#             access_token = encode_token(userid, "access")
-#             refresh_token = encode_token(userid, "refresh")
-
-#             response_object = {
-#                 "access_token": access_token,
-#                 "refresh_token": refresh_token,
-#                 "name": user 
-#             }
-#             return jsonify((response_object, status.HTTP_200_OK))
-#     except Exception as e:
-#         return jsonify(("Authentication is required and has failed!", status.HTTP_401_UNAUTHORIZED))
-
-# @app.route("/login", methods=["POST"])
-# def login():
-#     try:
-#         user = request.json['name']
-#         password = request.json['password']
-#         if not user or not password:
-#             return jsonify(("Authentication is required and has failed!", status.HTTP_401_UNAUTHORIZED))
-#         elif user not in g.users:
-#             return jsonify(("Unknown user!", status.HTTP_401_UNAUTHORIZED))
-#         else:
-#             password_hash = g.password_hashes[g.users.index(user)]
-#             if not bcrypt.check_password_hash(password_hash, password):
-#                 return jsonify(("Authentication is required and has failed!", status.HTTP_401_UNAUTHORIZED))
-
-#             # Update user's name and password in Redis
-#             user_id = g.userids[g.users.index(user)]
-#             user_key = f"users:{user_id}"
-#             user_record = {
-#                 "name": user,
-#                 "password": password
-#             }
-#             rjjsonsetwrapper(user_key, Path.rootPath(), user_record)
-
-#             # Generate tokens
-#             access_token = encode_token(user_id, "access")
-#             refresh_token = encode_token(user_id, "refresh")
-
-#             response_object = {
-#                 "access_token": access_token,
-#                 "refresh_token": refresh_token,
-#                 "name": user 
-#             }
-#             return jsonify((response_object, status.HTTP_200_OK))
-#     except Exception as e:
-#         return jsonify(("Authentication is required and has failed!", status.HTTP_401_UNAUTHORIZED))
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -283,14 +241,11 @@ def register():
     
     hashed_password = hash_password(password)
     
-   
-    
     # Store username and hashed_password in Redis under a unique key
     user_data = {'username': username, 'hashed_password': hashed_password}
-    key = f'user:{username}'  # Example key format: 'user:abc-123-def-456...'
+    key = f'user:{username}'
     
-    # Assuming rjjsonsetwrapper handles storing data in Redis
-    if rjjsonsetwrapper(key, Path.rootPath(), user_data):
+    if rjjsonsetwrapper(key, ".", user_data):
         return jsonify({'message': 'User registered successfully'}), 201
     else:
         return jsonify({'message': 'Internal server error'}), 500
@@ -316,26 +271,26 @@ def login():
         return jsonify({'message': 'Username and password are required'}), 400
     
     # Retrieve user data from Redis
-    user_data = rjjsongetwrapper('user:'+username, Path.rootPath())
+    user_data = rjjsongetwrapper('user:' + username, Path.rootPath())
     
     if user_data:
         stored_password = user_data.get('hashed_password')
         if stored_password and hash_password(password) == stored_password:
-           
             is_prime_user = username in ['user1', 'user2', 'user3']
             
             # Determine the behavior based on the username
             if is_prime_user:
+                session['username'] = username
                 # Set both 'currentUser' and 'primeUser' JSON with the username
                 if rjjsonsetwrapper('currentUser', Path.rootPath(), {'username': username}) and \
                    rjjsonsetwrapper('primeUser', Path.rootPath(), {'username': username}):
-                    return jsonify({'userID': username, 'message': 'You are a Application user'}), 200
+                    return jsonify({'userID': username, 'message': 'You are an Application user'}), 200
                 else:
                     return jsonify({'message': 'Internal server error'}), 500
             else:
                 # Set only 'currentUser' JSON with the username
                 if rjjsonsetwrapper('currentUser', Path.rootPath(), {'username': username}):
-                    return jsonify({'userID': username, 'message': 'You are a view only user'}), 200
+                    return jsonify({'userID': username, 'message': 'You are a view-only user'}), 200
                 else:
                     return jsonify({'message': 'Internal server error'}), 500
         else:
@@ -343,15 +298,10 @@ def login():
     else:
         return jsonify({'message': 'User not found'}), 404
 
-
-
-
-
-
 @app.route('/users', methods=['GET'])
 def get_users():
     users = rj.hkeys('users')  # Get all usernames from the 'users' hash
-    users_list = [user for user in users]  # Decode usernames from bytes to strings
+    users_list = [user.decode('utf-8') for user in users]  # Decode usernames from bytes to strings
     return jsonify({'users': users_list}), 200
 
 @app.route("/get-user1-data", methods=["GET"])
@@ -362,13 +312,10 @@ def get_user1_data():
         if data:
             return jsonify(data)
         else:
-            return jsonify("No data found for user1.", http.HTTPStatus.NOT_FOUND)
-    except:
-        print("*** Error retrieving data for user1.")
-        return jsonify("Error retrieving data for user1.", http.HTTPStatus.INTERNAL_SERVER_ERROR)
-
-
-
+            return jsonify("No data found for user1."), http.HTTPStatus.NOT_FOUND
+    except Exception as e:
+        print(f"Error retrieving data for user1: {e}")
+        return jsonify("Error retrieving data for user1."), http.HTTPStatus.INTERNAL_SERVER_ERROR
 
 @app.route("/fastlogin", methods=["POST"])
 def fastlogin():
@@ -383,12 +330,12 @@ def fastlogin():
                 userid = decode_token(access_token)
                 if userid not in g.userids:
                     raise Exception
-            except:
+            except Exception:
                 try:
                     userid = decode_token(refresh_token)
                     if userid not in g.userids:
                         raise Exception
-                except:
+                except Exception:
                     return jsonify(("Invalid token(s)!", status.HTTP_401_UNAUTHORIZED))
 
             access_token = encode_token(userid, "access")
@@ -401,12 +348,17 @@ def fastlogin():
             return jsonify((response_object, status.HTTP_200_OK))
     except Exception as e:
         return jsonify(("Authentication is required and has failed!", status.HTTP_401_UNAUTHORIZED))
-
-
-
-
-
-
+    
+@app.route('/get_user_info')
+def get_user_info():
+    if 'username' in session:
+        return jsonify({
+            'isLoggedIn': True,
+            'username': session['username'],
+            'prime_user': session.get('prime_user', False)
+        }), 200
+    else:
+        return jsonify({'isLoggedIn': False}), 200
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=True)
