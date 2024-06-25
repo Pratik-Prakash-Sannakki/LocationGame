@@ -17,7 +17,10 @@ from flask_api import status
 usr=""
 try:
     rj = Client(
-
+        host='redis-19369.c11.us-east-1-3.ec2.redns.redis-cloud.com',
+        port=19369,
+        password='iwIGMW4rywGlc4sNNA95UQcUBuC6auwW',
+        decode_responses=True
     )
 except Exception as e:
     print(f"Error connecting to Redis: {e}")
@@ -25,6 +28,7 @@ except Exception as e:
 
 push_to_redis = True
 rj_host = 'localhost'
+
 
 # Hard-coded time zone. Required for correct ObjectId comparisons!
 local_zone = pytz.timezone('US/Eastern')
