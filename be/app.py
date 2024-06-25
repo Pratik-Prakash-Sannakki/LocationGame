@@ -13,9 +13,14 @@ from flask_bcrypt import Bcrypt
 from flask_api import status
 
 # Redis connection using rejson Client
+
+usr=""
 try:
     rj = Client(
-       
+        host='redis-19369.c11.us-east-1-3.ec2.redns.redis-cloud.com',
+        port=19369,
+        password='iwIGMW4rywGlc4sNNA95UQcUBuC6auwW',
+        decode_responses=True
     )
 except Exception as e:
     print(f"Error connecting to Redis: {e}")
@@ -277,7 +282,8 @@ def login():
             
             # Determine the behavior based on the username
             if is_prime_user:
-                session['username'] = username
+                global usr 
+                usr= username
                 # Set both 'currentUser' and 'primeUser' JSON with the username
                 if rjjsonsetwrapper('currentUser', Path.rootPath(), {'username': username}) and \
                    rjjsonsetwrapper('primeUser', Path.rootPath(), {'username': username}):
@@ -348,10 +354,10 @@ def fastlogin():
     
 @app.route('/get_user_info')
 def get_user_info():
-    if 'username' in session:
+    if  usr:
         return jsonify({
             'isLoggedIn': True,
-            'username': session['username'],
+            'username': usr,
             'prime_user': session.get('prime_user', False)
         }), 200
     else:
