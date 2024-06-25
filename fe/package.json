@@ -19,6 +19,7 @@
     "react-scripts": "^3.4.4",
     "react-swipeable-views": "^0.13.9",
     "recharts": "^1.8.5",
+    "socket.io-client": "^4.7.5",
     "tubular-react": "^4.2.5"
   },
   "scripts": {

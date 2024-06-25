@@ -20,8 +20,8 @@ const AuthPage = () => {
       });
       console.log(response.status); // Assuming backend returns user details or success message
       
-      if (response.data.user_id) {
-        localStorage.setItem('userId', response);
+      if (response.data.userID) {
+        localStorage.setItem('userID', response);
       }
 
       setIsLoading(false); // End loading state
