@@ -11,6 +11,7 @@ python-dateutil
 rejson
 pytz
 dnspython
+flask_socketio
 Werkzeug==2.3
 Flask-Login==0.6.3
 Flask>0.7.1

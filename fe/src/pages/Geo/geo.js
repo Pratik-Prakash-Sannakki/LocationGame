@@ -31,6 +31,10 @@ function GeoLocation(props) {
   const [userPrime, setUserPrime] = useState(null);
 
   useEffect(() => {
+
+  }, []);
+
+  useEffect(() => {
     let watchId;
     if (navigator.geolocation) {
       watchId = navigator.geolocation.watchPosition(
@@ -42,29 +46,28 @@ function GeoLocation(props) {
           setSpeed(speed);
 
           try {
-            // Fetch user data to get the username
-            const userDataResponse = await fetch(
-              "http://localhost:5000/get-user1-data"
-            );
-            const userData = await userDataResponse.json();
-            console.log(userData)
-            const { name } = userData.username;
-            setUserPrime(userData.username);
-
-            // Send location data to the backend
-            await fetch("http://localhost:5000/set-location", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                user_id: name,
-                latitude: latitude,
-                longitude: longitude,
-                heading: heading,
-                speed: speed,
-              }),
-            });
+            fetch('http://localhost:5000/get_user_info')
+            .then(response => response.json())
+            .then(data => {
+              if (data.isLoggedIn) {
+                setUserPrime(data.username);
+                fetch("http://localhost:5000/set-location", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    user_id: data.username,  // Use userPrime for the user_id if needed
+                    latitude: latitude,
+                    longitude: longitude,
+                    heading: heading,
+                    speed: speed,
+                  }),
+                });
+              }
+            })
+            .catch(error => console.error('Error fetching user data:', error));
+           
           } catch (error) {
             console.error("Error setting user location:", error);
           }
@@ -82,7 +85,7 @@ function GeoLocation(props) {
         navigator.geolocation.clearWatch(watchId);
       }
     };
-  }, []);
+  }, [userPrime]);  // Ensure watchPosition updates if userPrime changes
 
   useEffect(() => {
     const fetchUserLocation = async (userId) => {
@@ -91,11 +94,8 @@ function GeoLocation(props) {
           return {};
         }
 
-        const response = await fetch(
-          `http://localhost:5000/get-location/${userId}`
-        );
+        const response = await fetch(`http://localhost:5000/get-location/${userId}`);
         const data = await response.json();
-        console.log(`Fetched location for ${userId}:`, data);
         return { [userId]: data };
       } catch (error) {
         console.error(`Error fetching user location for ${userId}:`, error);
@@ -130,42 +130,42 @@ function GeoLocation(props) {
       {speed !== null && <p>Speed: {speed}</p>}
 
       <div>
-      {userPrime !== "user1" && (
-        <>
-          <h4>User1</h4>
-          {users.user1.latitude !== undefined && (
-            <p>Latitude: {users.user1.latitude}</p>
-          )}
-          {users.user1.longitude !== undefined && (
-            <p>Longitude: {users.user1.longitude}</p>
-          )}
-        </>
-      )}
+        {userPrime !== "user1" && (
+          <>
+            <h4>User1</h4>
+            {users.user1.latitude !== undefined && (
+              <p>Latitude: {users.user1.latitude}</p>
+            )}
+            {users.user1.longitude !== undefined && (
+              <p>Longitude: {users.user1.longitude}</p>
+            )}
+          </>
+        )}
 
-      {userPrime !== "user2" && (
-        <>
-          <h4>User2</h4>
-          {users.user2.latitude !== undefined && (
-            <p>Latitude: {users.user2.latitude}</p>
-          )}
-          {users.user2.longitude !== undefined && (
-            <p>Longitude: {users.user2.longitude}</p>
-          )}
-        </>
-      )}
+        {userPrime !== "user2" && (
+          <>
+            <h4>User2</h4>
+            {users.user2.latitude !== undefined && (
+              <p>Latitude: {users.user2.latitude}</p>
+            )}
+            {users.user2.longitude !== undefined && (
+              <p>Longitude: {users.user2.longitude}</p>
+            )}
+          </>
+        )}
 
-      {userPrime !== "user3" && (
-        <>
-          <h4>User3</h4>
-          {users.user3.latitude !== undefined && (
-            <p>Latitude: {users.user3.latitude}</p>
-          )}
-          {users.user3.longitude !== undefined && (
-            <p>Longitude: {users.user3.longitude}</p>
-          )}
-        </>
-      )}
-    </div>
+        {userPrime !== "user3" && (
+          <>
+            <h4>User3</h4>
+            {users.user3.latitude !== undefined && (
+              <p>Latitude: {users.user3.latitude}</p>
+            )}
+            {users.user3.longitude !== undefined && (
+              <p>Longitude: {users.user3.longitude}</p>
+            )}
+          </>
+        )}
+      </div>
 
       <h1>Map</h1>
       {lat && lng && (
