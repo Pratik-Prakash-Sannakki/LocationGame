@@ -33,17 +33,7 @@ services:
     networks:
       - dummynetwork
 
-  ngrok:
-    image: wernight/ngrok
-    container_name: "ngrok"
-    depends_on:
-      - bes
-      - fes
-      - redis
-    entrypoint: sh -c 'ngrok http bes:5000 --log=stdout & ngrok http fes:80 --log=stdout & ngrok tcp redis:6379 --log=stdout'
-    environment:
-      NGROK_AUTHTOKEN: "2iFtH6fWYMPqXMjJpUeXSlSjvEl_2HJtsCmUL5sqZ1SrZy3Sa"
-      NGROK_REGION: "us"
+ 
 
 networks:
   dummynetwork:
