@@ -121,7 +121,7 @@ function GeoLocation(props) {
   return (
     <div style={{ backgroundColor: "white", padding: 72 }}>
       <h1>Coordinates</h1>
-      <h4>Pratik you are  {userPrime}</h4>
+      <h4>Welcome you are  {userPrime}</h4>
       {lat !== null && <p>Latitude: {lat}</p>}
       {lng !== null && <p>Longitude: {lng}</p>}
       {heading !== null && <p>Heading: {heading}</p>}
